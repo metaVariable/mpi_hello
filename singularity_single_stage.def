@@ -1,0 +1,66 @@
+# 
+# HPC Base image
+# 
+# Contents:
+#   GNU compilers (upstream)
+#   OpenMPI version 2.1.2
+# 
+
+BootStrap: docker
+From: ubuntu:18.04
+%post
+    . /.singularity.d/env/10-docker*.sh
+
+# GNU compiler
+%post
+    apt-get update -y
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        g++ \
+        gcc \
+        gfortran
+    rm -rf /var/lib/apt/lists/*
+
+# OpenMPI version 2.1.2
+%post
+    apt-get update -y
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        bzip2 \
+        file \
+        hwloc \
+        libnuma-dev \
+        make \
+        openssh-client \
+        perl \
+        tar \
+        wget
+    rm -rf /var/lib/apt/lists/*
+%post
+    cd /
+    mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-2.1.2.tar.bz2
+    mkdir -p /var/tmp && tar -x -f /var/tmp/openmpi-2.1.2.tar.bz2 -C /var/tmp -j
+    cd /var/tmp/openmpi-2.1.2 &&  CC=gcc CXX=g++ F77=gfortran F90=gfortran FC=gfortran ./configure --prefix=/usr/local/openmpi --enable-mpi-cxx --without-cuda --without-verbs
+    make -j$(nproc)
+    make -j$(nproc) install
+    rm -rf /var/tmp/openmpi-2.1.2.tar.bz2 /var/tmp/openmpi-2.1.2
+%environment
+    export LD_LIBRARY_PATH=/usr/local/openmpi/lib:$LD_LIBRARY_PATH
+    export PATH=/usr/local/openmpi/bin:$PATH
+%post
+    export LD_LIBRARY_PATH=/usr/local/openmpi/lib:$LD_LIBRARY_PATH
+    export PATH=/usr/local/openmpi/bin:$PATH
+
+%files
+    ./mpi_hello.c /workspace/mpi_hello.c
+
+%files
+    ./mpi_hello.cpp /workspace/mpi_hello.cpp
+
+%post
+    cd /
+    cd /workspace
+    mpicc mpi_hello.c -o mpi_hello_c
+
+%post
+    cd /
+    cd /workspace
+    mpicxx mpi_hello.cpp -o mpi_hello_cpp
