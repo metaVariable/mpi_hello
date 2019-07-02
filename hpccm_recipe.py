@@ -19,13 +19,6 @@ Stage0 += comment(__doc__, reformat=False)
 
 Stage0 += baseimage(image=devel_image, _as='devel')
 
-Stage0 += packages(
-    apt=[
-        'wget',
-        'make',
-        ]
-)
-
 # GNU compilers
 compiler = gnu()
 Stage0 += compiler
@@ -43,8 +36,11 @@ Stage0 += openmpi(
 )
 
 # Compile Hello
+Stage0 += copy(src='./mpi_hello.c', dest='/workspace/mpi_hello.c')
 Stage0 += copy(src='./mpi_hello.cpp', dest='/workspace/mpi_hello.cpp')
-Stage0 += shell(commands=['cd /workspace', 'mpicxx mpi_hello.cpp -o mpi_hello'])
+
+Stage0 += shell(commands=['cd /workspace', 'mpicc mpi_hello.c -o mpi_hello_c'])
+Stage0 += shell(commands=['cd /workspace', 'mpicxx mpi_hello.cpp -o mpi_hello_cpp'])
 
 ######
 # Runtime image
@@ -57,10 +53,7 @@ Stage1 += Stage0.runtime(_from='devel')
 Stage1 += workdir(directory='/workspace')
 
 # copy MEGADOCK binary from devel
-Stage1 += copy(
-    _from=Stage0.name,
-    src='/workspace/mpi_hello',
-    dest='/workspace/mpi_hello',
-)
+Stage1 += copy( _from=Stage0.name, src='/workspace/mpi_hello_c', dest='/workspace/mpi_hello_c')
+Stage1 += copy( _from=Stage0.name, src='/workspace/mpi_hello_cpp', dest='/workspace/mpi_hello_cpp')
 
 Stage1 += environment(variables={'PATH': '$PATH:/workspace'})
