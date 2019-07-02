@@ -60,12 +60,20 @@ Stage: devel
     export PATH=/usr/local/openmpi/bin:$PATH
 
 %files
+    ./mpi_hello.c /workspace/mpi_hello.c
+
+%files
     ./mpi_hello.cpp /workspace/mpi_hello.cpp
 
 %post
     cd /
     cd /workspace
-    mpicxx mpi_hello.cpp -o mpi_hello
+    mpicc mpi_hello.c -o mpi_hello_c
+
+%post
+    cd /
+    cd /workspace
+    mpicxx mpi_hello.cpp -o mpi_hello_cpp
 
 # NOTE: this definition file depends on features only available in
 # Singularity 3.2 and later.
@@ -105,7 +113,10 @@ Stage: runtime
     cd /workspace
 
 %files from devel
-    /workspace/mpi_hello /workspace/mpi_hello
+    /workspace/mpi_hello_c /workspace/mpi_hello_c
+
+%files from devel
+    /workspace/mpi_hello_cpp /workspace/mpi_hello_cpp
 
 %environment
     export PATH=$PATH:/workspace

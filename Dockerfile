@@ -44,10 +44,15 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 ENV LD_LIBRARY_PATH=/usr/local/openmpi/lib:$LD_LIBRARY_PATH \
     PATH=/usr/local/openmpi/bin:$PATH
 
+COPY ./mpi_hello.c /workspace/mpi_hello.c
+
 COPY ./mpi_hello.cpp /workspace/mpi_hello.cpp
 
 RUN cd /workspace && \
-    mpicxx mpi_hello.cpp -o mpi_hello
+    mpicc mpi_hello.c -o mpi_hello_c
+
+RUN cd /workspace && \
+    mpicxx mpi_hello.cpp -o mpi_hello_cpp
 
 FROM ubuntu:18.04 AS runtime
 
@@ -70,6 +75,8 @@ ENV LD_LIBRARY_PATH=/usr/local/openmpi/lib:$LD_LIBRARY_PATH \
 
 WORKDIR /workspace
 
-COPY --from=devel /workspace/mpi_hello /workspace/mpi_hello
+COPY --from=devel /workspace/mpi_hello_c /workspace/mpi_hello_c
+
+COPY --from=devel /workspace/mpi_hello_cpp /workspace/mpi_hello_cpp
 
 ENV PATH=$PATH:/workspace
