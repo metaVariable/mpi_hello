@@ -2,14 +2,12 @@
 HPC Base image
 
 Contents:
-  CUDA version 10.0
-  FFTW version 3.3.8
   GNU compilers (upstream)
   OpenMPI version 2.1.2
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
-devel_image = 'nvidia/cuda:10.0-devel-ubuntu18.04'
-runtime_image = 'nvidia/cuda:10.0-runtime-ubuntu18.04'
+devel_image = 'ubuntu:18.04'
+runtime_image = 'ubuntu:18.04'
 
 ######
 # Devel stage
@@ -25,7 +23,6 @@ Stage0 += packages(
     apt=[
         'wget',
         'make',
-        'cuda-samples-10-0'
         ]
 )
 
@@ -33,22 +30,11 @@ Stage0 += packages(
 compiler = gnu()
 Stage0 += compiler
 
-# FFTW
-Stage0 += fftw(
-    version='3.3.8', 
-    prefix='/usr/local/fftw',
-    configure_opts=[
-            '--enable-float',
-            '--enable-sse2'
-            ],
-    toolchain=compiler.toolchain
-)
-
 # OpenMPI
 Stage0 += openmpi(
     version='2.1.2',
     prefix='/usr/local/openmpi',
-    cuda=True, 
+    cuda=False, 
     infiniband=False,
     configure_opts=[
         '--enable-mpi-cxx'
@@ -56,16 +42,9 @@ Stage0 += openmpi(
     toolchain=compiler.toolchain
 )
 
-# MEGADOCK
-Stage0 += copy(src='.', dest='/workspace')
-Stage0 += copy(
-    src='./docker/gpu-dp/Makefile',
-    dest='/workspace/Makefile'
-)
-
-# Stage0 += workdir(directory='/workspace') # something wrong on workfir command
-# Stage0 += shell(chdir=True, commands=['make -j$(nproc)']) # something wrong on workfir command
-Stage0 += shell(commands=['cd /workspace', 'make -j$(nproc)'])
+# Compile Hello
+Stage0 += copy(src='./mpi_hello.cpp', dest='/workspace/mpi_hello.cpp')
+Stage0 += shell(commands=['cd /workspace', 'mpicxx mpi_hello.cpp -o mpi_hello'])
 
 ######
 # Runtime image
@@ -80,8 +59,8 @@ Stage1 += workdir(directory='/workspace')
 # copy MEGADOCK binary from devel
 Stage1 += copy(
     _from=Stage0.name,
-    src='/workspace/megadock-gpu-dp',
-    dest='/workspace/megadock-gpu-dp',
+    src='/workspace/mpi_hello',
+    dest='/workspace/mpi_hello',
 )
 
 Stage1 += environment(variables={'PATH': '$PATH:/workspace'})
